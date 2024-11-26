@@ -25,15 +25,24 @@ export async function POST(request: NextRequest): Promise<NextResponse<ResponseD
     }
 
     const repoName:string = path.basename(repoUrl, '.git');
-    const cloneDir:string = path.join(process.cwd(), '..', 'repos', repoName);
+    const reposDir: string = path.join(process.cwd(), '..', 'repo');
+    const cloneDir: string = path.join(reposDir, repoName);
     console.log(cloneDir)
 
     try {
-        await fs.access(cloneDir);
-        returnData = failedRequest('Git repo already cloned')
+        await fs.access(reposDir);
+        await fs.rm(reposDir, { recursive: true, force: true })
     } catch {
+        console.log('No repo directory... proceeding to create one')
+    }
+
+    try{
+        await fs.mkdir(reposDir)
         await git.clone(repoUrl, cloneDir);
         returnData = successfulRequest('Git Repo cloned successfully')
+    }
+    catch{
+        returnData = failedRequest('Error cloning git repo')
     }
     return NextResponse.json(returnData)
 }

@@ -1,7 +1,5 @@
 "use client"
 import {useEffect, useState} from 'react';
-import {Dispatcher} from "undici-types";
-import ResponseData = Dispatcher.ResponseData;
 import FolderStructureViewer from "@/app/components/folder-structure/page";
 
 interface ResponseDataCloneRepo{
@@ -13,8 +11,8 @@ interface ResponseDataCloneRepo{
 
 export default function Home() {
     const [repoUrl, setRepoUrl] = useState('');
-    const [fileTree, setFileTree] = useState<FileNode | null>(null);
     const [loading, setLoading] = useState(false);
+    const [gitCloneSuccess, setGitCloneSuccess] = useState<boolean>(false)
     const [error, setError] = useState('');
 
     useEffect(() => {
@@ -27,10 +25,19 @@ export default function Home() {
         }
     }, [error]);
 
+
+    useEffect(() => {
+        if(gitCloneSuccess){
+            const folderViewerElement = document.getElementById('folder-structure-viewer')
+            if(folderViewerElement){
+                folderViewerElement.dispatchEvent(new CustomEvent('fetchData'))
+            }
+        }
+    }, [gitCloneSuccess])
+
     const handleCloneRepo = async () => {
         setLoading(true);
         setError('');
-        setFileTree(null);
 
         try {
             const response = await fetch('/api/clone-repo', {
@@ -42,7 +49,7 @@ export default function Home() {
             const data:ResponseDataCloneRepo = await response.json();
 
             if (data.status == 200) {
-                // setFileTree(data.data);
+                setGitCloneSuccess(true)
                 console.log('good')
             } else {
                 setError( 'An error occurred.');
@@ -74,16 +81,9 @@ export default function Home() {
             <div className='flex justify-center'>
                 <p className='text-red-600'>{error}</p>
             </div>
-            <div>
+            <div id='folder-structure-viewer'>
                 <FolderStructureViewer></FolderStructureViewer>
             </div>
         </main>
     );
 }
-
-type FileNode = {
-    name: string;
-    path: string;
-    type: 'file' | 'directory';
-    children?: FileNode[];
-};

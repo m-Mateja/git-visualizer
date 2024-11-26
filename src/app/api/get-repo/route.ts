@@ -18,7 +18,7 @@ type ResponseDataGetRepo = {
 export async function GET(): Promise<NextResponse>{
     let returnData:ResponseDataGetRepo | undefined
     const excludeList = ['.git', 'node_modules', '.DS_Store', 'Thumbs.db'];
-    const reposPath = path.join(process.cwd(), '..', 'repos');
+    const reposPath = path.join(process.cwd(), '..', 'repo');
 
     const readFilesRecursively = (dirPath: string): FileNode[] => {
         const entries = fs.readdirSync(dirPath, { withFileTypes: true });
@@ -51,7 +51,7 @@ export async function GET(): Promise<NextResponse>{
 
     try {
         const filesData = readFilesRecursively(reposPath);
-        return NextResponse.json({name: 'repos', path: reposPath, type: 'folder', children: filesData})
+        return NextResponse.json({name: 'repo', path: reposPath, type: 'folder', children: filesData})
     } catch{
         returnData = {status:400, data:'Error reading files'}
         return NextResponse.json(returnData);
