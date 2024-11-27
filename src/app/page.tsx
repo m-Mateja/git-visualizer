@@ -15,9 +15,12 @@ export default function Home() {
     const [gitCloneSuccess, setGitCloneSuccess] = useState<boolean>(false)
     const [error, setError] = useState('');
 
+    /**
+     * If there is an error, remove is after 2 seconds so the user can try again
+     */
     useEffect(() => {
         if (error) {
-            const timer = setTimeout(() => {
+            const timer: NodeJS.Timeout = setTimeout(() => {
                 setError('');
             }, 2000);
 
@@ -25,22 +28,29 @@ export default function Home() {
         }
     }, [error]);
 
-
+    /**
+     * Once the git repo has been cloned, send a fetchData event to the listener in folder-structure
+     * This triggers the folder structure, editor and save file button accessibility
+     */
     useEffect(() => {
         if(gitCloneSuccess){
-            const folderViewerElement = document.getElementById('folder-structure-viewer')
+            const folderViewerElement: HTMLElement | null = document.getElementById('folder-structure-viewer')
             if(folderViewerElement){
                 folderViewerElement.dispatchEvent(new CustomEvent('fetchData'))
             }
         }
     }, [gitCloneSuccess])
 
+    /**
+     * POST method to capture git repo and clone to local directory
+     */
     const handleCloneRepo = async () => {
         setLoading(true);
         setError('');
+        setGitCloneSuccess(false);
 
         try {
-            const response = await fetch('/api/clone-repo', {
+            const response: Response = await fetch('/api/clone-repo', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ repoUrl }),
@@ -50,7 +60,6 @@ export default function Home() {
 
             if (data.status == 200) {
                 setGitCloneSuccess(true)
-                console.log('good')
             } else {
                 setError( 'An error occurred.');
             }
@@ -66,7 +75,7 @@ export default function Home() {
             <h1 className='p-8 text-center text-4xl'>Git Visualizer</h1>
             <div className='flex justify-center'>
                 <input
-                    className='m-4 p-2 w-1/4 rounded-2xl text-black'
+                    className='m-4 p-2 w-1/2 rounded-2xl text-black'
                     type="text"
                     placeholder="Enter GitHub repository URL"
                     value={repoUrl}

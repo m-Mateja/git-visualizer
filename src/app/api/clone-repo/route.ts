@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import simpleGit, { SimpleGit } from 'simple-git';
 import { promises as fs } from 'fs';
 import path from 'path';
+import {Simulate} from "react-dom/test-utils";
 
 type ResponseDataCloneRepo = {
     success: boolean
@@ -48,7 +49,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ResponseD
 }
 
 function failedRequest(data:string):ResponseDataCloneRepo{
-    return {success:false, status:400, data:data}
+    return {success:false, status:500, error:'Internal Server Error', data:data}
 }
 function successfulRequest(data:string):ResponseDataCloneRepo{
     return {success:true, status:200, data:data}

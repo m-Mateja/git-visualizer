@@ -1,18 +1,7 @@
 "use client"
 import { useEffect, useState } from 'react';
-import Editor from 'react-simple-code-editor';
 import dynamic from 'next/dynamic'
 const FolderTree = dynamic(() => import('react-folder-tree'), { ssr: false });
-
-interface ResponseDataGetRepo {
-    status: number;
-    data: FileData[] | string;
-}
-
-interface FileData {
-    path: string;
-    content: string;
-}
 
 interface FileNode {
     name: string;
@@ -25,27 +14,38 @@ interface FileNode {
 export default function FolderStructureViewer() {
     const [treeData, setTreeData] = useState<FileNode | null>(null);
     const [error, setError] = useState<string>('');
-    const [selectedFileContent, setSelectedFileContent] = useState('');
-    const [selectedFilePath, setSelectedFilePath] = useState('')
-    const [spinner, setSpinner] = useState<boolean>(true)
+    const [selectedFileContent, setSelectedFileContent] = useState<string>('');
+    const [selectedFilePath, setSelectedFilePath] = useState<string>('')
+    const [repoNotClonedYet, setRepoNotClonedYet] = useState<boolean>(true)
 
+
+    /**
+     * Set an event listener to fetch repo data when it has completed cloning from the main component
+     */
     useEffect(() => {
-        const folderViewerElement = document.getElementById('folder-structure-viewer');
+        const folderViewerElement: HTMLElement | null = document.getElementById('folder-structure-viewer');
         if (folderViewerElement) {
-            console.log('event')
             folderViewerElement.addEventListener('fetchData', fetchData);
         }
-    })
+    }, [])
 
-    const fetchData = async () => {
+    /**
+     * GET repo folders and files
+     * Return tree which represents folders with children and files with no children
+     * Set tree data, and set repoNotClonedYet flag to false so that the editor loads up
+     */
+    const fetchData = async (): Promise<void> => {
+        setRepoNotClonedYet(true)
+        setSelectedFileContent('')
+        setSelectedFilePath('')
+
         try {
-            const response = await fetch('/api/get-repo');
+            const response: Response = await fetch('/api/get-repo');
             const data: FileNode = await response.json();
 
             if (response.ok) {
-                console.log(data)
                 setTreeData(data);
-                setSpinner(false)
+                setRepoNotClonedYet(false)
             } else {
                 setError('An error occurred.');
             }
@@ -55,9 +55,13 @@ export default function FolderStructureViewer() {
         }
     };
 
-    const saveFileContent = async () => {
+    /**
+     * POST method to save the edited file and commit/push to repo
+     * Once this has completed, GET the repo data again to ensure you have the most up to date version
+     */
+    const saveFileContent = async (): Promise<void> => {
         try {
-            const response = await fetch('api/save-file', {
+            const response: Response = await fetch('api/save-file', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -68,22 +72,23 @@ export default function FolderStructureViewer() {
                 }),
             })
 
-            const data = await response.json()
-
+            await response.json()
             if(response.ok){
                 console.log('file saved')
-                fetchData()
+                await fetchData()
             }
         }
-        catch (err){
+        catch{
             setError('No file selected')
         }
     }
 
-
+    /**
+     * Hide the folder tree, text area and save file button until the repo has been cloned successfully and can be accessed
+     */
     return (
         <main className='p-8 m-4 rounded-2xl border-2'>
-            {spinner ? null : (
+            {repoNotClonedYet ? <h1 className='flex justify-center text-xl'> Clone a Git Repository to Get Started</h1> : (
                 <>
                     <div className='flex justify-center'>
                         <h1 className='text-xl'>Click on a file name to begin editing</h1>
@@ -97,8 +102,7 @@ export default function FolderStructureViewer() {
                                     indentPixels={0.5}
                                     data={treeData}
                                     showCheckbox={false}
-                                    onNameClick={({ defaultOnClick, nodeData }) => {
-                                        defaultOnClick();
+                                    onNameClick={({ nodeData }) => {
                                         if (nodeData.type === 'file') {
                                             setSelectedFileContent(nodeData.content);
                                             setSelectedFilePath(nodeData.path);
@@ -108,16 +112,18 @@ export default function FolderStructureViewer() {
                             )}
                         </div>
                         <div className='w-1/2'>
-                            {selectedFileContent && (
-                                <textarea
-                                    value={selectedFileContent}
-                                    onChange={(e) => setSelectedFileContent(e.target.value)}
-                                    className="w-full h-96 font-mono text-xs border boder-gray-300 rounded-md p-2.5 text-black"
-                                />
+                            {selectedFileContent &&(
+                                <>
+                                    <textarea
+                                        value={selectedFileContent}
+                                        onChange={(e) => setSelectedFileContent(e.target.value)}
+                                        className="w-full h-96 font-mono text-xs border boder-gray-300 rounded-md p-2.5 text-black"
+                                    />
+                                    <button className='mt-4 p-2 w-full bg-purple-500 rounded-2xl' onClick={saveFileContent}>
+                                        Save File
+                                    </button>
+                                </>
                             )}
-                            <button className='mt-4 p-2 w-full bg-purple-500 rounded-2xl' onClick={saveFileContent}>
-                                Save File
-                            </button>
                         </div>
                     </div>
                 </>
