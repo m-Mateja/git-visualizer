@@ -1,28 +1,23 @@
 "use client"
 import {useEffect, useState} from 'react';
 import FolderStructureViewer from "@/app/components/folder-structure/page";
+import {ResponseData} from "@/app/api/clone-repo/route";
 
-interface ResponseDataCloneRepo{
-    success: boolean
-    status: number
-    data?: string
-    error?: string
-}
 
 export default function Home() {
     const [repoUrl, setRepoUrl] = useState('');
     const [loading, setLoading] = useState(false);
     const [gitCloneSuccess, setGitCloneSuccess] = useState<boolean>(false)
-    const [error, setError] = useState('');
+    const [error, setError] = useState<string | undefined>('');
 
     /**
-     * If there is an error, remove is after 2 seconds so the user can try again
+     * If there is an error, remove is after 3 seconds so the user can try again
      */
     useEffect(() => {
         if (error) {
             const timer: NodeJS.Timeout = setTimeout(() => {
                 setError('');
-            }, 2000);
+            }, 3000);
 
             return () => clearTimeout(timer);
         }
@@ -49,26 +44,22 @@ export default function Home() {
         setError('');
         setGitCloneSuccess(false);
 
-        try {
-            const response: Response = await fetch('/api/clone-repo', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ repoUrl }),
-            });
+        const response: Response = await fetch('/api/clone-repo', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({repoUrl}),
+        });
 
-            const data:ResponseDataCloneRepo = await response.json();
+        const data: ResponseData = await response.json();
 
-            if (data.status == 200) {
-                setGitCloneSuccess(true)
-            } else {
-                setError( 'An error occurred.');
-            }
-        } catch {
-            setError('An error occurred while cloning the repository.');
-        } finally {
-            setLoading(false);
+        if (response.ok) {
+            setGitCloneSuccess(true)
+        } else {
+            setError(data.error);
         }
-    };
+        setLoading(false);
+    }
+
 
     return (
         <main>

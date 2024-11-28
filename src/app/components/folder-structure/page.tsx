@@ -1,23 +1,43 @@
 "use client"
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic'
+import {NodeData} from "react-folder-tree";
+import {ResponseData} from "@/app/api/clone-repo/route";
 const FolderTree = dynamic(() => import('react-folder-tree'), { ssr: false });
 
-interface FileNode {
-    name: string;
-    path: string;
-    type: 'file' | 'folder';
-    content?: string;
-    children?: FileNode[];
+interface FileNode extends NodeData{
+    path: string
+    type: 'file' | 'folder'
+    content?: string
 }
 
 export default function FolderStructureViewer() {
-    const [treeData, setTreeData] = useState<FileNode | null>(null);
-    const [error, setError] = useState<string>('');
+    const [treeData, setTreeData] = useState<FileNode | undefined>(undefined);
+    const [error, setError] = useState<string | undefined>('');
+    const [success, setSuccess] = useState<string | undefined>('')
     const [selectedFileContent, setSelectedFileContent] = useState<string>('');
     const [selectedFilePath, setSelectedFilePath] = useState<string>('')
     const [repoNotClonedYet, setRepoNotClonedYet] = useState<boolean>(true)
 
+    /**
+     * If there is an error or success, remove is after 3 seconds so the user can try again
+     */
+    useEffect(() => {
+        let timer: NodeJS.Timeout;
+
+        if (error) {
+            timer = setTimeout(() => {
+                setError('')
+            }, 3000)
+
+        } else if (success) {
+            timer = setTimeout(() => {
+                setSuccess('')
+            }, 3000)
+        }
+        return () => {clearTimeout(timer)
+        }
+    }, [error, success])
 
     /**
      * Set an event listener to fetch repo data when it has completed cloning from the main component
@@ -39,30 +59,26 @@ export default function FolderStructureViewer() {
         setSelectedFileContent('')
         setSelectedFilePath('')
 
-        try {
-            const response: Response = await fetch('/api/get-repo');
-            const data: FileNode = await response.json();
+        const response: Response = await fetch('/api/get-repo');
+        const data: ResponseData = await response.json();
 
-            if (response.ok) {
-                setTreeData(data);
-                setRepoNotClonedYet(false)
-            } else {
-                setError('An error occurred.');
-            }
-        } catch (err) {
-            console.error('Fetch error:', err);
-            setError('An error occurred while fetching data.');
+        if (response.ok && typeof data.data !== 'string') {
+            setTreeData(data.data);
+            setRepoNotClonedYet(false)
+            setSuccess('Git Repo fetch successful')
+        } else {
+            setError(data.error);
         }
     };
 
     /**
      * POST method to save the edited file and commit/push to repo
-     * Once this has completed, GET the repo data again to ensure you have the most up to date version
+     * Once this has completed, GET the repo data again to ensure you have the most up-to-date version
      */
     const saveFileContent = async (): Promise<void> => {
         try {
             const response: Response = await fetch('api/save-file', {
-                method: 'POST',
+                method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                 },
@@ -74,7 +90,6 @@ export default function FolderStructureViewer() {
 
             await response.json()
             if(response.ok){
-                console.log('file saved')
                 await fetchData()
             }
         }
@@ -92,7 +107,10 @@ export default function FolderStructureViewer() {
                 <>
                     <div className='flex justify-center'>
                         <h1 className='text-xl'>Click on a file name to begin editing</h1>
-                        {error && <p style={{ color: 'red' }}>{error}</p>}
+                    </div>
+                    <div className='flex justify-center m-4'>
+                        {error && <p className='text-red-600'>{error}</p>}
+                        {success && <p className='text-green-600'>{success}</p>}
                     </div>
 
                     <div className='flex justify-between p-2 mt-4'>
@@ -102,7 +120,8 @@ export default function FolderStructureViewer() {
                                     indentPixels={0.5}
                                     data={treeData}
                                     showCheckbox={false}
-                                    onNameClick={({ nodeData }) => {
+                                    onNameClick={({defaultOnClick, nodeData }) => {
+                                        defaultOnClick()
                                         if (nodeData.type === 'file') {
                                             setSelectedFileContent(nodeData.content);
                                             setSelectedFilePath(nodeData.path);

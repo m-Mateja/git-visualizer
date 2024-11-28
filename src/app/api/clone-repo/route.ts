@@ -2,56 +2,50 @@ import { NextRequest, NextResponse } from 'next/server';
 import simpleGit, { SimpleGit } from 'simple-git';
 import { promises as fs } from 'fs';
 import path from 'path';
-import {Simulate} from "react-dom/test-utils";
+import {FileNode} from "@/app/api/get-repo/route";
 
-type ResponseDataCloneRepo = {
-    success: boolean
-    status: number
-    data?: string
-    error?: string
+export interface ResponseData {
+    data?:string | FileNode
+    error?:string
 }
 
 type RequestDataCloneRepo = {
     repoUrl: string
 }
 
-export async function POST(request: NextRequest): Promise<NextResponse<ResponseDataCloneRepo>> {
-    let returnData: ResponseDataCloneRepo | undefined = undefined
+/**
+ * POST request which clones git repo, and creates a directory for it
+ * Handle no input, or invalid inputs
+ * Set directory one level up from the working directory of this project
+ * If there is another repo in the git directory, replace with a new one
+ * Git clone into the 'repo' directory, and handle possible errors
+ */
+export async function POST(request: NextRequest): Promise<NextResponse<ResponseData>> {
     const git: SimpleGit = simpleGit();
-    const requestData:RequestDataCloneRepo  = await request.json()
-    const repoUrl:string = requestData.repoUrl
+    const requestData: RequestDataCloneRepo = await request.json()
+    const repoUrl: string = requestData.repoUrl
 
-    if (repoUrl.length == 0){
-        return NextResponse.json(failedRequest('No input detected'))
+    if (repoUrl.length == 0) {
+        return NextResponse.json({error:'No input detected'}, {status: 500})
     }
 
-    const repoName:string = path.basename(repoUrl, '.git');
+    const repoName: string = path.basename(repoUrl, '.git');
     const reposDir: string = path.join(process.cwd(), '..', 'repo');
     const cloneDir: string = path.join(reposDir, repoName);
-    console.log(cloneDir)
 
     try {
         await fs.access(reposDir);
-        await fs.rm(reposDir, { recursive: true, force: true })
+        await fs.rm(reposDir, {recursive: true, force: true})
     } catch {
         console.log('No repo directory... proceeding to create one')
     }
 
-    try{
+    try {
         await fs.mkdir(reposDir)
         await git.clone(repoUrl, cloneDir);
-        returnData = successfulRequest('Git Repo cloned successfully')
+        return NextResponse.json({data: 'Git Repo cloned successfully'}, {status:200})
+    } catch {
+        return NextResponse.json({error:'Git Repo does not exist or is private'}, {status: 500})
     }
-    catch{
-        returnData = failedRequest('Error cloning git repo')
-    }
-    return NextResponse.json(returnData)
-}
-
-function failedRequest(data:string):ResponseDataCloneRepo{
-    return {success:false, status:500, error:'Internal Server Error', data:data}
-}
-function successfulRequest(data:string):ResponseDataCloneRepo{
-    return {success:true, status:200, data:data}
 }
 
