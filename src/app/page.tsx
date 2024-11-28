@@ -2,6 +2,8 @@
 import {useEffect, useState} from 'react';
 import FolderStructureViewer from "@/app/components/folder-structure/page";
 import {ResponseData} from "@/app/api/clone-repo/route";
+import dynamic from "next/dynamic";
+const FolderTree = dynamic(() => import('react-folder-tree'), { ssr: false });
 
 
 export default function Home() {
@@ -59,7 +61,6 @@ export default function Home() {
         }
         setLoading(false);
     }
-
 
     return (
         <main>

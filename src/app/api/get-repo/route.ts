@@ -1,10 +1,10 @@
-import {NextRequest, NextResponse} from "next/server";
+import {NextResponse} from "next/server";
 import path from "path";
 import * as fs from "fs";
 import {NodeData} from "react-folder-tree";
 
 export interface FileNode extends NodeData{
-    path: string
+    fPath: string
     type: 'file' | 'folder'
     content?: string
 }
@@ -35,7 +35,7 @@ export async function GET(): Promise<NextResponse>{
             if (entry.isDirectory()) {
                 files.push({
                     name: entry.name,
-                    path: fullPath,
+                    fPath: fullPath,
                     type: 'folder',
                     children: readFilesRecursively(fullPath),
                 });
@@ -43,7 +43,7 @@ export async function GET(): Promise<NextResponse>{
                 const content: string = fs.readFileSync(fullPath, 'utf-8')
                 files.push({
                     name: entry.name,
-                    path: fullPath,
+                    fPath: fullPath,
                     type: 'file',
                     content: content
                 });
@@ -56,7 +56,8 @@ export async function GET(): Promise<NextResponse>{
         const filesData: FileNode[] = readFilesRecursively(reposPath);
         const rootNode: FileNode = {
             name: 'repo',
-            path: reposPath,
+            isOpen: false,
+            fPath: reposPath,
             type: 'folder',
             children: filesData
         };

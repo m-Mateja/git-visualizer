@@ -3,13 +3,8 @@ import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic'
 import {NodeData} from "react-folder-tree";
 import {ResponseData} from "@/app/api/clone-repo/route";
+import {FileNode} from "@/app/api/get-repo/route";
 const FolderTree = dynamic(() => import('react-folder-tree'), { ssr: false });
-
-interface FileNode extends NodeData{
-    path: string
-    type: 'file' | 'folder'
-    content?: string
-}
 
 export default function FolderStructureViewer() {
     const [treeData, setTreeData] = useState<FileNode | undefined>(undefined);
@@ -118,14 +113,13 @@ export default function FolderStructureViewer() {
                         <div className='w-1/2'>
                             {treeData && (
                                 <FolderTree
-                                    indentPixels={0.5}
+                                    // indentPixels={0.5}
                                     data={treeData}
                                     showCheckbox={false}
-                                    onNameClick={({defaultOnClick, nodeData }) => {
-                                        defaultOnClick()
+                                    onNameClick={({nodeData  }) => {
                                         if (nodeData.type === 'file') {
                                             setSelectedFileContent(nodeData.content);
-                                            setSelectedFilePath(nodeData.path);
+                                            setSelectedFilePath(nodeData.fPath);
                                         }
                                         window.scrollTo({
                                             top: 0,
