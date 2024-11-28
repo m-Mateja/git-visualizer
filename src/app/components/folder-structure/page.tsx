@@ -98,6 +98,7 @@ export default function FolderStructureViewer() {
         }
     }
 
+
     /**
      * Hide the folder tree, text area and save file button until the repo has been cloned successfully and can be accessed
      */
@@ -126,6 +127,10 @@ export default function FolderStructureViewer() {
                                             setSelectedFileContent(nodeData.content);
                                             setSelectedFilePath(nodeData.path);
                                         }
+                                        window.scrollTo({
+                                            top: 0,
+                                            behavior: 'smooth',
+                                        });
                                     }}
                                 />
                             )}
