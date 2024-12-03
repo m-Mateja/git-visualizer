@@ -1,7 +1,6 @@
 "use client"
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic'
-import {NodeData} from "react-folder-tree";
 import {ResponseData} from "@/app/api/clone-repo/route";
 import {FileNode} from "@/app/api/get-repo/route";
 const FolderTree = dynamic(() => import('react-folder-tree'), { ssr: false });
