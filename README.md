@@ -23,6 +23,7 @@ User inputs git url -> clicks clone repository -> POST (create directory, clone 
 ## Running Git Visualizer
 - For main project:
 ```bash
+npm install --legacy-peer-deps
 npm run dev
 ```
 
